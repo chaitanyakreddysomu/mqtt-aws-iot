@@ -20,25 +20,12 @@ let currentStatus = {
   message: "Starting MQTT connection…",
 };
 
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
-
 // --------------------------------------------------
-// CORS
+// CORS — Allow all origins
 // --------------------------------------------------
 
 function setCorsHeaders(request, response) {
-  const origin = request.headers.origin;
-
-  if (!allowedOrigins.length) {
-    response.setHeader("Access-Control-Allow-Origin", "*");
-  } else if (origin && allowedOrigins.includes(origin)) {
-    response.setHeader("Access-Control-Allow-Origin", origin);
-  }
-
-  response.setHeader("Vary", "Origin");
+  response.setHeader("Access-Control-Allow-Origin", "*");
   response.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   response.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
@@ -53,9 +40,7 @@ function send(client, event, payload) {
     return;
   }
 
-  client.write(
-    `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`
-  );
+  client.write(`event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`);
 }
 
 function broadcast(event, payload) {
@@ -119,8 +104,7 @@ const httpServer = http.createServer((request, response) => {
     `http://${request.headers.host || "localhost"}`
   );
 
-  // GET /api/events
-  // Continuous Server-Sent Events stream
+  // GET /api/events — Server-Sent Events stream
   if (
     request.method === "GET" &&
     requestUrl.pathname === "/api/events"
@@ -140,9 +124,7 @@ const httpServer = http.createServer((request, response) => {
       clients.delete(response);
     });
 
-    // Send current status immediately to new clients.
     send(response, "status", currentStatus);
-
     return;
   }
 
@@ -178,7 +160,6 @@ const httpServer = http.createServer((request, response) => {
     });
 
     response.end(JSON.stringify(currentStatus));
-
     return;
   }
 
@@ -187,11 +168,9 @@ const httpServer = http.createServer((request, response) => {
     "Content-Type": "application/json; charset=utf-8",
   });
 
-  response.end(
-    JSON.stringify({
-      error: "Endpoint not found",
-    })
-  );
+  response.end(JSON.stringify({
+    error: "Endpoint not found",
+  }));
 });
 
 // --------------------------------------------------
@@ -214,11 +193,7 @@ httpServer.listen(serverPort, "0.0.0.0", () => {
     return;
   }
 
-  let client;
-
   try {
-    // Prefer environment-variable PEM contents.
-    // Fall back to local certificate files.
     const cert = loadPemFromEnvironmentOrFile(
       awsIotConfig.certificatePem,
       awsIotConfig.certificatePath,
@@ -231,7 +206,6 @@ httpServer.listen(serverPort, "0.0.0.0", () => {
       "AWS IoT private key"
     );
 
-    // Validate PEM headers before connecting.
     const certText = cert.toString("utf8");
     const keyText = key.toString("utf8");
 
@@ -251,7 +225,7 @@ httpServer.listen(serverPort, "0.0.0.0", () => {
       );
     }
 
-    client = mqtt.connect({
+    const client = mqtt.connect({
       protocol: "mqtts",
       host: awsIotConfig.host,
       port: Number(awsIotConfig.port || 8883),
@@ -265,7 +239,6 @@ httpServer.listen(serverPort, "0.0.0.0", () => {
       keepalive: 60,
     });
 
-    // MQTT connected
     client.on("connect", () => {
       publishStatus("connected", "Connected — subscribing…");
 
@@ -274,9 +247,7 @@ httpServer.listen(serverPort, "0.0.0.0", () => {
         { qos: 1 },
         (error, granted) => {
           if (error) {
-            reportError(
-              `Subscribe failed: ${error.message || error}`
-            );
+            reportError(`Subscribe failed: ${error.message || error}`);
             return;
           }
 
@@ -291,10 +262,7 @@ httpServer.listen(serverPort, "0.0.0.0", () => {
             return;
           }
 
-          publishStatus(
-            "connected",
-            "Connected and subscribed"
-          );
+          publishStatus("connected", "Connected and subscribed");
 
           console.log(
             `[MQTT] Subscribed to topic: ${awsIotConfig.topic}`
@@ -303,32 +271,22 @@ httpServer.listen(serverPort, "0.0.0.0", () => {
       );
     });
 
-    // MQTT reconnecting
     client.on("reconnect", () => {
-      publishStatus(
-        "connecting",
-        "MQTT disconnected; reconnecting…"
-      );
+      publishStatus("connecting", "MQTT disconnected; reconnecting…");
     });
 
-    // MQTT offline
     client.on("offline", () => {
       publishStatus("connecting", "MQTT client is offline");
     });
 
-    // MQTT connection closed
     client.on("close", () => {
       publishStatus("connecting", "MQTT connection closed");
     });
 
-    // MQTT errors
     client.on("error", (error) => {
-      reportError(
-        `MQTT connection error: ${error.message || error}`
-      );
+      reportError(`MQTT connection error: ${error.message || error}`);
     });
 
-    // Incoming MQTT messages
     client.on("message", (topic, payload) => {
       let data;
 
