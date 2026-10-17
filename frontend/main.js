@@ -1,6 +1,8 @@
 import "./style.css";
 
 const isLiveView = window.location.pathname.replace(/\/+$/, "") === "/liveview";
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const apiUrl = (path) => `${apiBaseUrl}${path}`;
 
 if (isLiveView) {
   document.body.classList.add("liveview-page");
@@ -39,9 +41,9 @@ if (isLiveView) {
 }
 
 let totalMessages = 0;
-const events = new EventSource("/api/events");
+const events = new EventSource(apiUrl("/api/events"));
 
-fetch("/api/config").then((response) => response.json()).then((config) => {
+fetch(apiUrl("/api/config")).then((response) => response.json()).then((config) => {
   const topic = document.querySelector(isLiveView ? "#live-topic" : "#topic-value");
   if (topic) topic.textContent = config.topic || "Not configured";
 }).catch(() => {

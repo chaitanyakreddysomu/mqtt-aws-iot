@@ -3,9 +3,9 @@
  * this Node.js machine; do not put them in browser code or commit them.
  */
 export const awsIotConfig = {
-  host: "a542fogxy57b1-ats.iot.ap-south-1.amazonaws.com",
-  port: 8883,
-  certificatePath: "./certs/certificate.pem.crt",
-  privateKeyPath: "./certs/private.pem.key",
-  topic: "#",
+  host: process.env.AWS_IOT_HOST || "a542fogxy57b1-ats.iot.ap-south-1.amazonaws.com",
+  port: Number(process.env.AWS_IOT_PORT || 8883),
+  certificatePath: process.env.AWS_IOT_CERTIFICATE_PATH || "./certs/certificate.pem.crt",
+  privateKeyPath: process.env.AWS_IOT_PRIVATE_KEY_PATH || "./certs/private.pem.key",
+  topic: process.env.AWS_IOT_TOPIC || "#",
 };
