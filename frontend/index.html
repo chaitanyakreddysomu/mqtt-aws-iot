@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f7fb" />
+    <title>AWS IoT MQTT Monitor</title>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="brand" href="#" aria-label="AWS IoT Monitor home"><span class="brand-mark">◎</span><span>AWS IoT <b>Monitor</b></span></a>
+        <div class="topbar-actions"><a class="live-view-link" href="/liveview">Live View <span>↗</span></a><span class="secure-label"><span></span> MQTT over TLS</span></div>
+      </header>
+
+      <main>
+        <section class="intro">
+          <div class="eyebrow">DEVICE DATA · REAL TIME</div>
+          <h1>MQTT topic monitor</h1>
+          <p>Connect to AWS IoT Core and watch messages arrive as they happen.</p>
+        </section>
+
+        <section class="connection-card" aria-labelledby="connection-heading">
+          <div class="card-heading">
+            <div><div class="eyebrow">CONNECTION</div><h2 id="connection-heading">AWS IoT Core</h2></div>
+            <div class="status-pill" id="status-pill"><span class="status-dot"></span><span id="status-text">Not connected</span></div>
+          </div>
+          <div class="connection-details">
+            <div><span>MQTT broker</span><strong>Configured in <code>awsConfig.js</code></strong></div>
+            <div><span>Authentication</span><strong>Device certificate · mutual TLS</strong></div>
+            <div><span>Topic filter</span><strong id="topic-value">Starting…</strong></div>
+          </div>
+          <p class="security-note"><span>◇</span> Certificate and private key are read by the local Node.js service and never sent to the browser.</p>
+        </section>
+
+        <section class="messages-section" aria-labelledby="messages-heading">
+          <div class="messages-heading">
+            <div><div class="eyebrow">LIVE FEED</div><h2 id="messages-heading">Incoming messages <span id="message-count">0</span></h2></div>
+            <div class="feed-actions"><span class="live-indicator"><span></span> LIVE</span><button class="clear-button" id="clear-button" type="button">Clear feed</button></div>
+          </div>
+          <div class="message-list" id="message-list" aria-live="polite">
+            <div class="empty-state" id="empty-state">
+              <div class="empty-icon">⌁</div>
+              <strong>Waiting for your connection</strong>
+              <p>Connect to an AWS IoT topic to see device messages here.</p>
+            </div>
+          </div>
+          <div class="feed-footer"><span id="feed-summary">Messages will appear here in real time.</span><span>Newest first</span></div>
+        </section>
+        <div class="notice" id="notice" role="alert" hidden></div>
+      </main>
+      <footer class="page-footer">AWS IoT Core <span>·</span> MQTT over TLS</footer>
+    </div>
+    <script type="module" src="/main.js"></script>
+  </body>
+</html>

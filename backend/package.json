@@ -1,0 +1,12 @@
+{
+  "name": "aws-iot-mqtt-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "aws-iot-device-sdk-v2": "^1.23.0"
+  }
+}
