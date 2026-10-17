@@ -41,7 +41,7 @@ if (isLiveView) {
 }
 
 let totalMessages = 0;
-const events = new EventSource(apiUrl("/api/events"));
+const events = apiBaseUrl ? null : new EventSource(apiUrl("/api/events"));
 
 fetch(apiUrl("/api/config")).then((response) => response.json()).then((config) => {
   const topic = document.querySelector(isLiveView ? "#live-topic" : "#topic-value");
@@ -126,10 +126,9 @@ function extractMotorValues(payload) {
   return result;
 }
 
-function addLiveViewMessage(message) {
-  const values = extractMotorValues(message.data);
+function updateLiveValues(values, receivedAt) {
   if (!Object.keys(values).length) return;
-  const time = new Date(message.receivedAt);
+  const time = new Date(receivedAt || Date.now());
   const timeLabel = time.toLocaleTimeString();
   const formatValue = (value) => value === null || value === undefined ? "—" : String(value);
   if (Object.hasOwn(values, "state")) {
@@ -154,13 +153,36 @@ function addLiveViewMessage(message) {
   document.querySelector("#latest-time").textContent = timeLabel;
 }
 
-events.addEventListener("status", (event) => {
-  const { status, message } = JSON.parse(event.data);
-  setConnectionStatus(status, message);
-});
-events.addEventListener("message", (event) => {
-  const message = JSON.parse(event.data);
-  if (isLiveView) addLiveViewMessage(message);
-  else addFeedMessage(message);
-});
-events.onerror = () => setConnectionStatus("connecting", "Reconnecting to dashboard…");
+function addLiveViewMessage(message) {
+  updateLiveValues(extractMotorValues(message.data), message.receivedAt);
+}
+
+async function pollVercelLiveView() {
+  try {
+    const response = await fetch(apiUrl("/api/liveview"));
+    const snapshot = await response.json();
+    if (!response.ok) throw new Error(snapshot.message || "Backend request failed");
+    updateLiveValues(snapshot.values || {}, snapshot.receivedAt);
+    setConnectionStatus(snapshot.status === "connected" ? "connected" : "connecting", snapshot.message || "Waiting for device telemetry");
+  } catch (error) {
+    setConnectionStatus("error", error.message || "Could not reach the backend API");
+  }
+}
+
+if (apiBaseUrl) {
+  if (isLiveView) {
+    pollVercelLiveView();
+    window.setInterval(pollVercelLiveView, 10000);
+  }
+} else {
+  events.addEventListener("status", (event) => {
+    const { status, message } = JSON.parse(event.data);
+    setConnectionStatus(status, message);
+  });
+  events.addEventListener("message", (event) => {
+    const message = JSON.parse(event.data);
+    if (isLiveView) addLiveViewMessage(message);
+    else addFeedMessage(message);
+  });
+  events.onerror = () => setConnectionStatus("connecting", "Reconnecting to dashboard…");
+}

@@ -34,16 +34,27 @@ The motor dashboard is available at `/liveview`. It shows the latest received va
 
 ## Deploying the frontend to Vercel
 
-Deploy this repository as a Vercel project with **Root Directory** set to `frontend`, build command `npm run build`, and output directory `dist`. Set the frontend environment variable `VITE_API_BASE_URL` to the public base URL of the separately hosted backend, with no trailing slash (for example, `https://mqtt-api.example.com`). `frontend/.env.example` shows the variable name for local reference.
+For a backend-only Vercel deployment, set **Root Directory** to `backend`, choose the **Node.js** preset, leave the build command empty, and deploy the functions in `api/`. Vercel exposes `api/liveview.js` as `GET /api/liveview` and `api/config.js` as `GET /api/config`. Do not use the long-running `server.js` as the Vercel entry point.
 
-Run the backend as an always-on Node.js service on a host that supports a persistent MQTT connection and SSE. Do not deploy `server.js` as a Vercel Function: the MQTT subscription is long-lived, while Vercel Functions have a maximum execution duration. Store the device certificate and private key as private secret files on the backend host, then set `AWS_IOT_CERTIFICATE_PATH` and `AWS_IOT_PRIVATE_KEY_PATH` to their mounted paths. Also set `AWS_IOT_HOST`, `AWS_IOT_PORT` (`8883`), `AWS_IOT_TOPIC`, and `FRONTEND_ORIGIN` to the Vercel site's exact origin. The server reads the hosting provider's `PORT` automatically.
+Add these variables in the Vercel project's Settings → Environment Variables. Choose **Secret** for the certificate and private key values:
 
-Never add the `.crt` or `.key` files to Git or to the Vercel frontend project. The frontend only needs the public backend URL; AWS device credentials must stay on the backend.
+- `AWS_IOT_HOST` — AWS IoT data endpoint, without `https://`
+- `AWS_IOT_PORT` — `8883`
+- `AWS_IOT_TOPIC` — MQTT topic filter
+- `AWS_IOT_CERTIFICATE` — contents of the device certificate PEM file
+- `AWS_IOT_PRIVATE_KEY` — contents of the matching private key PEM file
+- `FRONTEND_ORIGIN` — the exact browser app origin, if a separate frontend will call this API
+
+Never commit or paste the private key into frontend code. The API opens a short MQTT connection for each request, subscribes for up to five seconds, returns the latest motor values it receives, then disconnects. A separate frontend can poll `/api/liveview`; set its `VITE_API_BASE_URL` to the Vercel backend URL. The existing frontend uses this mode when that variable is set.
+
+For a response immediately after subscribing, publish the device's latest state with MQTT's RETAIN flag and subscribe to the exact topic for that retained message. A wildcard topic filter does not deliver retained messages upon subscription in AWS IoT Core. Without retained messages, the function must wait for the next device publish; set `MQTT_CAPTURE_MS` to adjust the sample window (1000–15000 ms).
+
+The AWS IoT certificate must be active and have a policy attached that allows the generated client IDs to connect and subscribe/receive on the configured topic. Vercel Functions have a maximum execution duration, so this short request-based connection is suitable for periodically fetching values, not for maintaining a permanent MQTT subscription.
 
 ## API
 
-- `GET /api/config` — configured host, port, and topic
-- `GET /api/status` — current MQTT connection status as JSON
-- `GET /api/events` — server-sent event stream with MQTT status and messages
+- Vercel `GET /api/config` — configured host, port, and topic
+- Vercel `GET /api/liveview` — opens a short MQTT connection and returns the latest motor values received
+- Local `GET /api/status` and `GET /api/events` — status and continuous event stream from `server.js`
 
 The MQTT client and private key remain in the backend. The private key is never bundled into or sent to the browser. Keep device credentials private and use a least-privilege certificate.
