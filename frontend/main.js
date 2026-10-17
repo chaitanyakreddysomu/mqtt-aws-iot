@@ -1,7 +1,7 @@
 import "./style.css";
 
 const isLiveView = window.location.pathname.replace(/\/+$/, "") === "/liveview";
-const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "https://mqtt-aws-iot.vercel.app").replace(/\/+$/, "");
 const apiUrl = (path) => `${apiBaseUrl}${path}`;
 
 if (isLiveView) {
